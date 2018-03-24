@@ -1,4 +1,4 @@
-# UnboundAdBlocker
+# UnboundBlacklister
 
 Simple Java tool to create an [unbound](https://www.unbound.net/) configuration file from a hosts file
 containing a list of well-known adware and malware domains.
