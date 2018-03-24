@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 
-public class UnboundAdBlocker {
+public class UnboundBlacklister {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
     private static final String SOURCE_LIST = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
@@ -51,7 +51,7 @@ public class UnboundAdBlocker {
     }
 
     private static Path getJarLocation() throws URISyntaxException {
-        Path jarPath = Paths.get(UnboundAdBlocker.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        Path jarPath = Paths.get(UnboundBlacklister.class.getProtectionDomain().getCodeSource().getLocation().toURI());
         if (Files.isRegularFile(jarPath)) {
             return jarPath.getParent();
         } else {
