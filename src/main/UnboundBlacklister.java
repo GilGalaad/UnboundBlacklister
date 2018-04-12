@@ -77,7 +77,7 @@ public class UnboundBlacklister {
                 if (isValidLine(line.trim())) {
                     String[] split = line.trim().split("\\s", -1);
                     String domain = split[1].toLowerCase().trim();
-                    if (isValidDomain(domain) && !whiteList.contains(domain)) {
+                    if (isValidDomain(domain) && !isWhitelisted(domain)) {
                         blackList.add(domain);
                     }
                 }
@@ -150,24 +150,35 @@ public class UnboundBlacklister {
         return true;
     }
 
-    private static boolean isValidDomain(String str) {
-        if (str.length() <= 3) {
+    private static boolean isValidDomain(String domain) {
+        if (domain.length() <= 3) {
             return false;
         }
         Pattern p = Pattern.compile(IPV4_REGEX);
-        Matcher m = p.matcher(str);
+        Matcher m = p.matcher(domain);
         if (m.matches()) {
             return false;
         }
-        if (str.startsWith("xn--")) {
+        if (domain.startsWith("xn--")) {
             return true;
         }
         p = Pattern.compile(DOMAIN_REGEX);
-        m = p.matcher(str);
+        m = p.matcher(domain);
         if (!m.matches()) {
             return false;
         }
         return true;
+    }
+
+    private static boolean isWhitelisted(String domain) {
+        for (String white : whiteList) {
+            String lowerDomain = domain.toLowerCase();
+            String lowerWhite = white.toLowerCase();
+            if (lowerDomain.equals(lowerWhite) || lowerDomain.endsWith("." + lowerWhite)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }
