@@ -17,25 +17,30 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class UnboundBlacklister {
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-    private static final String BLACKLIST_URL = "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
     private static final String WHITE_LIST_FILENAME = "whitelist.conf";
     private static final int HTTP_STATUS_OK = 200;
     private static final int BUFFER_SIZE = 8 * 1024;
     private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:59.0) Gecko/20100101 Firefox/59.0";
     private static final String IPV4_REGEX = "((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
-    private static final String DOMAIN_REGEX = ".*[a-zA-Z_0-9]{1}\\.[a-zA-Z_0-9]{2,}";
+    private static final Pattern IPV4_PATTERN = Pattern.compile(IPV4_REGEX);
+    private static final String DOMAIN_REGEX = ".*[a-zA-Z0-9]{1}\\.[a-zA-Z0-9]{2,}";
+    private static final Pattern DOMAIN_PATTERN = Pattern.compile(DOMAIN_REGEX);
 
-    private static HashSet<String> blackList = new HashSet<>();
-    private static HashSet<String> whiteList = new HashSet<>();
+    private static final List<String> sourceList = Arrays.asList("https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
+            "https://raw.githubusercontent.com/anudeepND/youtubeadsblacklist/master/hosts.txt");
+    private static final HashSet<String> blackList = new HashSet<>();
+    private static final HashSet<String> whiteList = new HashSet<>();
 
     public static void main(String[] args) {
         System.out.println("# " + sdf.format(new Date()));
@@ -70,24 +75,29 @@ public class UnboundBlacklister {
         }
 
         // fetching remote blacklist
-        System.out.println("# Processing URL: " + BLACKLIST_URL);
-        try (BufferedReader br = getResourceBufferedReader(BLACKLIST_URL)) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (isValidLine(line.trim())) {
-                    String[] split = line.trim().split("\\s", -1);
-                    String domain = split[1].toLowerCase().trim();
-                    if (isValidDomain(domain) && !isWhitelisted(domain)) {
-                        blackList.add(domain);
+        for (String source : sourceList) {
+            System.out.println("# Processing source: " + source);
+            HashSet<String> curBlackList = new HashSet<>();
+            try (BufferedReader br = getResourceBufferedReader(source)) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (isValidLine(line.trim())) {
+                        String[] split = line.trim().split("\\s", -1);
+                        String domain = split[1].toLowerCase().trim();
+                        if (isValidDomain(domain) && !isWhitelisted(domain)) {
+                            curBlackList.add(domain);
+                        }
                     }
                 }
+                log("# Found " + curBlackList.size() + " blacklisted unique domains");
+                blackList.addAll(curBlackList);
+            } catch (MalformedURLException ex) {
+                log("# Malformed URL - " + ex.getMessage());
+            } catch (IOException ex) {
+                log("# IOException while parsing blacklist URL - " + ex.getMessage());
             }
-            log("# Found a total of " + blackList.size() + " blacklisted unique domains");
-        } catch (MalformedURLException ex) {
-            log("# Malformed URL - " + ex.getMessage());
-        } catch (IOException ex) {
-            log("# IOException while parsing blacklist URL - " + ex.getMessage());
         }
+        log("# Found a total of " + blackList.size() + " blacklisted unique domains");
 
         // ordering and printing
         ArrayList<String> orderedBlackList = new ArrayList<>();
@@ -141,40 +151,35 @@ public class UnboundBlacklister {
         return new BufferedReader(new StringReader(res));
     }
 
-    private static boolean isValidLine(String str) {
-        if (isEmpty(str) || str.startsWith("#")
-                || str.startsWith("127.0.0.1") || str.startsWith("255.255.255.255")
-                || str.startsWith("::1") || str.startsWith("fe80:") || str.startsWith("ff02::1") || str.startsWith("ff02::2")) {
-            return false;
-        }
-        return true;
+    private static boolean isValidLine(String line) {
+        return !(line.equals("") || line.startsWith("#")
+                || line.startsWith("127.0.0.1") || line.startsWith("255.255.255.255")
+                || line.startsWith("::1") || line.startsWith("fe80:") || line.startsWith("ff02::1") || line.startsWith("ff02::2"));
     }
 
     private static boolean isValidDomain(String domain) {
         if (domain.length() <= 3) {
             return false;
         }
-        Pattern p = Pattern.compile(IPV4_REGEX);
-        Matcher m = p.matcher(domain);
-        if (m.matches()) {
+        Matcher ipv4Matcher = IPV4_PATTERN.matcher(domain);
+        if (ipv4Matcher.matches()) {
             return false;
         }
         if (domain.startsWith("xn--")) {
             return true;
         }
-        p = Pattern.compile(DOMAIN_REGEX);
-        m = p.matcher(domain);
-        if (!m.matches()) {
+        Matcher domainMatcher = DOMAIN_PATTERN.matcher(domain);
+        if (!domainMatcher.matches()) {
             return false;
         }
         return true;
     }
 
     private static boolean isWhitelisted(String domain) {
-        for (String white : whiteList) {
-            String lowerDomain = domain.toLowerCase();
-            String lowerWhite = white.toLowerCase();
-            if (lowerDomain.equals(lowerWhite) || lowerDomain.endsWith("." + lowerWhite)) {
+        for (String whiteListedDomain : whiteList) {
+            String lowercaseDomain = domain.toLowerCase();
+            String lowercaseWhiteListedDomain = whiteListedDomain.toLowerCase();
+            if (lowercaseDomain.equals(lowercaseWhiteListedDomain) || lowercaseDomain.endsWith("." + lowercaseWhiteListedDomain)) {
                 return true;
             }
         }
