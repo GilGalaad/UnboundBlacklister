@@ -37,8 +37,7 @@ public class UnboundBlacklister {
     private static final String DOMAIN_REGEX = ".*[a-zA-Z0-9]{1}\\.[a-zA-Z0-9]{2,}";
     private static final Pattern DOMAIN_PATTERN = Pattern.compile(DOMAIN_REGEX);
 
-    private static final List<String> sourceList = Arrays.asList("https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
-            "https://raw.githubusercontent.com/anudeepND/youtubeadsblacklist/master/hosts.txt");
+    private static final List<String> sourceList = Arrays.asList("https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts");
     private static final HashSet<String> blackList = new HashSet<>();
     private static final HashSet<String> whiteList = new HashSet<>();
 
