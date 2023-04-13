@@ -77,6 +77,8 @@ public class UnboundBlacklister {
             Path ret = Paths.get(UnboundBlacklister.class.getProtectionDomain().getCodeSource().getLocation().toURI());
             if (Files.isRegularFile(ret)) {
                 return ret.getParent();
+            } else if (ret.getFileName().toString().equalsIgnoreCase("classes") && ret.getParent() != null && ret.getParent().getFileName().toString().equalsIgnoreCase("target")) {
+                return ret.getParent().getParent();
             } else {
                 return ret;
             }
@@ -89,7 +91,7 @@ public class UnboundBlacklister {
     private static HashSet<String> loadDomainsFromFile(Path path) {
         try {
             List<String> lines = Files.readAllLines(path, UTF_8);
-            return lines.stream().map(String::trim).map(String::toLowerCase).filter(i -> !i.isBlank() && i.startsWith("#")).collect(Collectors.toCollection(HashSet::new));
+            return lines.stream().map(String::trim).map(String::toLowerCase).filter(i -> !i.isBlank() && !i.startsWith("#")).collect(Collectors.toCollection(HashSet::new));
         } catch (IOException ex) {
             throw new RuntimeException(ex.getClass().getSimpleName() + " while parsing whitelist file: " + ex.getMessage(), ex);
         }
